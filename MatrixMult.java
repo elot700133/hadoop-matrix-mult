@@ -12,7 +12,10 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
  
 public class MatrixMult{
- 
+
+  // 1) read in <bytes, a line of file>
+  // 2) group matrix A column i with matrix B row i
+  // 3) sends out <i, <r,c,value,matrix_name>>
     public static class Map extends Mapper<LongWritable, Text, Text, Text> {
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
           if(false){
@@ -37,9 +40,43 @@ public class MatrixMult{
                 }
             }
         }//if
+
+
+        // get matrix C (m by p) size
+        Configuration conf = context.getConfiguration();
+        int m = Integer.parseInt(conf.get("m"));
+        int p = Integer.parseInt(conf.get("p"));
+
+        // setup a line of file
+        String line = value.toString();
+        String[] indicesAndValue = line.split(",");
+
+        // text format
+        int rIdx = 0; // row
+        int cIdx = 1; // col
+        int vIdx = 2; // value
+        int mIdx = 3; // matrix name
+
+        // allocate output variables
         Text outputKey = new Text();
-        outputKey.set(key.toString());
-        context.write(outputKey,value);
+        Text outputValue = new Text();
+
+        // matrix A do this
+        if (indicesAndValue[mIdx].equals("A")){
+          outputKey.set(indicesAndValue[cIdx]); // matrix A column num
+          outputValue.set(value.toString());
+          context.write(outputKey,outputValue);
+        }
+        // matrix B do this
+        else { 
+          outputKey.set(indicesAndValue[rIdx]); // matrix B column num
+          outputValue.set(value.toString());
+          context.write(outputKey,outputValue);
+        }
+
+        //Text outputKey = new Text();
+        //outputKey.set(key.toString());
+        //context.write(outputKey,value);
 
       }
     }
@@ -73,7 +110,9 @@ public class MatrixMult{
         } //if
         //Text outputValue = new Text();
         //outputValue = values.iterator().next();
-        context.write(key,new Text(values.iterator().next()+",combiner"));
+        while(values.iterator().hasNext()){
+          context.write(key,new Text(values.iterator().next()+",combiner"));
+        }
         }
     }
     public static class Reduce extends Reducer<Text, Text, Text, Text> {
@@ -105,7 +144,9 @@ public class MatrixMult{
         } //if
         //Text outputValue = new Text();
         //outputValue = values.iterator().next();
-        context.write(key,new Text(values.iterator().next()+",reducer"));
+        while(values.iterator().hasNext()){
+          context.write(key,new Text(values.iterator().next()+",reducer"));
+        }
         }
     }
  
