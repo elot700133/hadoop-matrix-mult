@@ -14,7 +14,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 public class MatrixMult{
  
     public static class Map extends Mapper<LongWritable, Text, Text, Text> {
-        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+      public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+          if(false){
             Configuration conf = context.getConfiguration();
             int m = Integer.parseInt(conf.get("m"));
             int p = Integer.parseInt(conf.get("p"));
@@ -35,11 +36,17 @@ public class MatrixMult{
                     context.write(outputKey, outputValue);
                 }
             }
-        }
+        }//if
+        Text outputKey = new Text();
+        outputKey.set(key.toString());
+        context.write(outputKey,value);
+
+      }
     }
  
     public static class Reduce extends Reducer<Text, Text, Text, Text> {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+          if(false){
             String[] value;
             HashMap<Integer, Float> hashA = new HashMap<Integer, Float>();
             HashMap<Integer, Float> hashB = new HashMap<Integer, Float>();
@@ -63,6 +70,10 @@ public class MatrixMult{
             if (result != 0.0f) {
                 context.write(null, new Text(key.toString() + "," + Float.toString(result)));
             }
+        } //if
+        //Text outputValue = new Text();
+        //outputValue = values.iterator().next();
+        context.write(key,new Text(values.iterator().next()));
         }
     }
  
