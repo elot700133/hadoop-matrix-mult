@@ -66,7 +66,7 @@ public class MatrixMult{
     // input value: list of <row,col,value,matrix name>
     // output key: <row,col> of matrix C
     // output value: all the products
-    public static class Combiner extends Reducer<Text, Text, Text, Text> {
+    public static class Reduce extends Reducer<Text, Text, Text, Text> {
       public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         if(false){
           Text outputValue = new Text();
@@ -105,15 +105,16 @@ public class MatrixMult{
                 // multiply each matrix B
                 if(indicesAndValue_j[mIdx].equals("B")){
                   // setup outputKey and outputValue
-                  Text outputKey = new Text();
+                  //Text outputKey = new Text();
                   Text outputValue = new Text();
                   float valA = Float.parseFloat(indicesAndValue_i[vIdx]);
                   float valB = Float.parseFloat(indicesAndValue_j[vIdx]);
                   float result = valA * valB;
                   //outputKey.set(new Text(indicesAndValue_i[rIdx] + "." + indicesAndValue_j[cIdx])); // row of A, col of B
-                  outputKey.set(new Text(indicesAndValue_i[rIdx])); // row of A, col of B
-                  outputValue.set(Float.toString(result));
-                  context.write(outputKey,outputValue);
+                  //outputKey.set(new Text(indicesAndValue_i[rIdx])); // row of A, col of B
+                  outputValue.set(new Text(indicesAndValue_i[rIdx] + "," + indicesAndValue_j[cIdx]+","+Float.toString(result)));
+                  //context.write(outputKey,outputValue);
+                  context.write(null,outputValue);
                 }
               }
             }
@@ -122,39 +123,34 @@ public class MatrixMult{
       }//reduce
     }
 
+    public static class Map2 extends Mapper<LongWritable, Text, Text, Text> {
+      public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        // setup a line of file
+        String line = value.toString();
+        String[] indicesAndValue = line.split(",");
+
+        // text format
+        int rIdx = 0; // row
+        int cIdx = 1; // col
+        int vIdx = 2; // value
+
+        // allocate output variables
+        Text outputKey = new Text();
+        Text outputValue = new Text();
+
+        outputKey.set(indicesAndValue[rIdx]+","+indicesAndValue[cIdx]);
+        outputValue.set(indicesAndValue[vIdx]);
+        context.write(outputKey,outputValue);
+      }
+    }
     // 3rd phase:
     // output key: <row,col> of matrix C
     // output value: summation of all the related products
-    public static class Reduce extends Reducer<Text, Text, Text, Text> {
+    public static class Reduce2 extends Reducer<Text, Text, Text, Text> {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-          if(false){
-            String[] value;
-            HashMap<Integer, Float> hashA = new HashMap<Integer, Float>();
-            HashMap<Integer, Float> hashB = new HashMap<Integer, Float>();
-            for (Text val : values) {
-                value = val.toString().split(",");
-                if (value[0].equals("A")) {
-                    hashA.put(Integer.parseInt(value[1]), Float.parseFloat(value[2]));
-                } else {
-                    hashB.put(Integer.parseInt(value[1]), Float.parseFloat(value[2]));
-                }
-            }
-            int n = Integer.parseInt(context.getConfiguration().get("n"));
-            float result = 0.0f;
-            float a_ij;
-            float b_jk;
-            for (int j = 0; j < n; j++) {
-                a_ij = hashA.containsKey(j) ? hashA.get(j) : 0.0f;
-                b_jk = hashB.containsKey(j) ? hashB.get(j) : 0.0f;
-                result += a_ij * b_jk;
-            }
-            if (result != 0.0f) {
-                context.write(null, new Text(key.toString() + "," + Float.toString(result)));
-            }
-        } //if
         //Text outputValue = new Text();
         //outputValue = values.iterator().next();
-        if(true){
+        if(false){
           int i=0;
           while(values.iterator().hasNext()){
             context.write(key,new Text(values.iterator().next()+",reducer"+Integer.toString(i)));
@@ -163,11 +159,15 @@ public class MatrixMult{
         }
 
         if(true){
-
-
-        }
+          //summation
+          float sum=0;
+          while(values.iterator().hasNext()){
+            sum += Float.parseFloat(values.iterator().next().toString()); 
+          }
+          context.write(key,new Text(Float.toString(sum)));
       }
     }
+  }
  
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
@@ -182,7 +182,6 @@ public class MatrixMult{
         job.setOutputValueClass(Text.class);
  
         job.setMapperClass(Map.class);
-        job.setCombinerClass(Combiner.class);
         job.setReducerClass(Reduce.class);
  
         job.setInputFormatClass(TextInputFormat.class);
@@ -192,5 +191,20 @@ public class MatrixMult{
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
  
         job.waitForCompletion(true);
+
+        Job job2 = new Job(conf, "MatrixMult2");
+        job2.setJarByClass(MatrixMult.class);
+        job2.setOutputKeyClass(Text.class);
+        job2.setOutputValueClass(Text.class);
+
+        job2.setMapperClass(Map2.class);
+        job2.setReducerClass(Reduce2.class);
+ 
+        job2.setInputFormatClass(TextInputFormat.class);
+        job2.setOutputFormatClass(TextOutputFormat.class);
+ 
+        FileInputFormat.addInputPath(job2, new Path(args[1]));
+        FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+        job2.waitForCompletion(true);
     }
 }
