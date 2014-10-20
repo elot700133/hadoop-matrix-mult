@@ -126,8 +126,23 @@ public class MatrixMult{
             i++;
           }
         }
-        
+        if(false){ 
+          List<Text> copy = new ArrayList<Text>();
+          while(values.iterator().hasNext()){
+            copy.add(new Text(values.iterator().next()));
+          }
+          for(int i=0; i<copy.size();i++){
+            context.write(key,new Text(copy.get(i)+",combiner"+Integer.toString(i)));
+          }
+          for(int i=0; i<copy.size();i++){
+            context.write(key,new Text(copy.get(i)+",combiner"+Integer.toString(i+10)));
+          }
+        }
         if(true){
+          List<Text> copy = new ArrayList<Text>();
+          while(values.iterator().hasNext()){
+            copy.add(new Text(values.iterator().next()));
+          }
           // text format
           int rIdx = 0; // row
           int cIdx = 1; // col
@@ -137,10 +152,12 @@ public class MatrixMult{
           // get the output key ready
           // it is row of A, col of B
           // each of the element of A need to multiply all the B elements
-          Iterator<Text> iter_i = values.iterator();
-          while(iter_i.hasNext()){
+          //Iterator<Text> iter_i = values.iterator();
+          //while(iter_i.hasNext()){
+          for(int i=0;i<copy.size();i++){
             // setup a line of file
-            String line_i = iter_i.next().toString();
+            //String line_i = iter_i.next().toString();
+            String line_i = copy.get(i).toString();
             String[] indicesAndValue_i = line_i.split(",");
             // find matrix A
             if(indicesAndValue_i[mIdx].equals("A")){
@@ -152,13 +169,15 @@ public class MatrixMult{
                 context.write(outputKey,new Text("i am A"));
                 continue;
               }
-              Iterable<Text> values2 = values;
-              Iterator<Text> iter_j = values2.iterator();
-              while(iter_j.hasNext()){
+              //Iterable<Text> values2 = values;
+              //Iterator<Text> iter_j = values2.iterator();
+              //while(iter_j.hasNext()){
+              for(int j=0;j<copy.size();j++){
                 // setup a line of file
-                String line_j = iter_j.next().toString();
+                //String line_j = iter_j.next().toString();
+                String line_j = copy.get(j).toString();
                 String[] indicesAndValue_j = line_j.split(",");
-                if(true){
+                if(false){
                   // setup outputKey and outputValue
                   Text outputKey = new Text();
                   Text outputValue = new Text();
@@ -182,7 +201,8 @@ public class MatrixMult{
                   float valA = Float.parseFloat(indicesAndValue_i[vIdx]);
                   float valB = Float.parseFloat(indicesAndValue_j[vIdx]);
                   float result = valA * valB;
-                  outputKey.set(indicesAndValue_i[rIdx] + "," + indicesAndValue_j[cIdx]); // row of A, col of B
+                  //outputKey.set(new Text(indicesAndValue_i[rIdx] + "." + indicesAndValue_j[cIdx])); // row of A, col of B
+                  outputKey.set(new Text(indicesAndValue_i[rIdx])); // row of A, col of B
                   outputValue.set(Float.toString(result));
                   context.write(outputKey,outputValue);
                 }
@@ -225,12 +245,19 @@ public class MatrixMult{
         } //if
         //Text outputValue = new Text();
         //outputValue = values.iterator().next();
-        int i=0;
-        while(values.iterator().hasNext()){
-          context.write(key,new Text(values.iterator().next()+",reducer"+Integer.toString(i)));
-          i++;
+        if(true){
+          int i=0;
+          while(values.iterator().hasNext()){
+            context.write(key,new Text(values.iterator().next()+",reducer"+Integer.toString(i)));
+            i++;
+          }
         }
+
+        if(true){
+
+
         }
+      }
     }
  
     public static void main(String[] args) throws Exception {
