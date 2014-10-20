@@ -117,7 +117,7 @@ public class MatrixMult{
             }
         } //if
 
-        if(true){
+        if(false){
           Text outputValue = new Text();
           //outputValue = values.iterator().next();
           while(values.iterator().hasNext()){
@@ -125,7 +125,7 @@ public class MatrixMult{
           }
         }
         
-        if(false){
+        if(true){
           // text format
           int rIdx = 0; // row
           int cIdx = 1; // col
@@ -141,16 +141,31 @@ public class MatrixMult{
             String[] indicesAndValue_i = line_i.split(",");
             // find matrix A
             if(indicesAndValue_i[mIdx].equals("A")){
+              if(false){
+                // setup outputKey and outputValue
+                Text outputKey = new Text();
+                Text outputValue = new Text();
+                outputKey.set(indicesAndValue_i[rIdx]); // row of A, col of B
+                context.write(outputKey,new Text("i am A"));
+                continue;
+              }
               for(Text j: values){
                 // setup a line of file
                 String line_j = j.toString();
                 String[] indicesAndValue_j = line_j.split(",");
                 // multiply each matrix B
                 if(indicesAndValue_j[mIdx].equals("B")){
+                  if(false){
+                    // setup outputKey and outputValue
+                    Text outputKey = new Text();
+                    Text outputValue = new Text();
+                    outputKey.set(indicesAndValue_i[rIdx] + "," + indicesAndValue_j[cIdx]); // row of A, col of B
+                    context.write(outputKey,new Text("i am B"));
+                    continue;
+                  }
                   // setup outputKey and outputValue
                   Text outputKey = new Text();
                   Text outputValue = new Text();
-                  outputKey.set(indicesAndValue_i[rIdx] + "," + indicesAndValue_j[cIdx]); // row of A, col of B
                   float valA = Float.parseFloat(indicesAndValue_i[vIdx]);
                   float valB = Float.parseFloat(indicesAndValue_j[vIdx]);
                   float result = valA * valB;
