@@ -13,12 +13,13 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
  
 public class MatrixMult{
 
+  // 1st phase mapper
   // 1) read in <bytes, a line of file>
   // 2) group matrix A column i with matrix B row i
   // 3) sends out <i, <r,c,value,matrix_name>>
     public static class Map extends Mapper<LongWritable, Text, Text, Text> {
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-          if(false){
+        if(false){
             Configuration conf = context.getConfiguration();
             int m = Integer.parseInt(conf.get("m"));
             int p = Integer.parseInt(conf.get("p"));
@@ -39,51 +40,58 @@ public class MatrixMult{
                     context.write(outputKey, outputValue);
                 }
             }
-        }//if
-
-
-        // get matrix C (m by p) size
-        Configuration conf = context.getConfiguration();
-        int m = Integer.parseInt(conf.get("m"));
-        int p = Integer.parseInt(conf.get("p"));
-
-        // setup a line of file
-        String line = value.toString();
-        String[] indicesAndValue = line.split(",");
-
-        // text format
-        int rIdx = 0; // row
-        int cIdx = 1; // col
-        int vIdx = 2; // value
-        int mIdx = 3; // matrix name
-
-        // allocate output variables
-        Text outputKey = new Text();
-        Text outputValue = new Text();
-
-        // matrix A do this
-        if (indicesAndValue[mIdx].equals("A")){
-          outputKey.set(indicesAndValue[cIdx]); // matrix A column num
-          outputValue.set(value.toString());
-          context.write(outputKey,outputValue);
-        }
-        // matrix B do this
-        else { 
-          outputKey.set(indicesAndValue[rIdx]); // matrix B column num
-          outputValue.set(value.toString());
-          context.write(outputKey,outputValue);
         }
 
-        //Text outputKey = new Text();
-        //outputKey.set(key.toString());
-        //context.write(outputKey,value);
+        if(false){
+          Text outputKey = new Text();
+          outputKey.set(key.toString());
+          context.write(outputKey,value);
+        }
 
+        if(true){
+          // get matrix C (m by p) size
+          Configuration conf = context.getConfiguration();
+          int m = Integer.parseInt(conf.get("m"));
+          int p = Integer.parseInt(conf.get("p"));
+
+          // setup a line of file
+          String line = value.toString();
+          String[] indicesAndValue = line.split(",");
+
+          // text format
+          int rIdx = 0; // row
+          int cIdx = 1; // col
+          int vIdx = 2; // value
+          int mIdx = 3; // matrix name
+
+          // allocate output variables
+          Text outputKey = new Text();
+          Text outputValue = new Text();
+
+          // matrix A do this
+          if (indicesAndValue[mIdx].equals("A")){
+            outputKey.set(indicesAndValue[cIdx]); // matrix A column num
+            outputValue.set(value.toString());
+            context.write(outputKey,outputValue);
+          }
+          // matrix B do this
+          else { 
+            outputKey.set(indicesAndValue[rIdx]); // matrix B column num
+            outputValue.set(value.toString());
+            context.write(outputKey,outputValue);
+          }
+        }
       }
     }
- 
+
+    // 2nd phase:
+    // input key: The matching number col of A and row of B
+    // input value: list of <row,col,value,matrix name>
+    // output key: <row,col> of matrix C
+    // output value: all the products
     public static class Combiner extends Reducer<Text, Text, Text, Text> {
-        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-          if(false){
+      public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        if(false){
             String[] value;
             HashMap<Integer, Float> hashA = new HashMap<Integer, Float>();
             HashMap<Integer, Float> hashB = new HashMap<Integer, Float>();
@@ -108,13 +116,57 @@ public class MatrixMult{
                 context.write(null, new Text(key.toString() + "," + Float.toString(result)));
             }
         } //if
-        //Text outputValue = new Text();
-        //outputValue = values.iterator().next();
-        while(values.iterator().hasNext()){
-          context.write(key,new Text(values.iterator().next()+",combiner"));
+
+        if(true){
+          Text outputValue = new Text();
+          //outputValue = values.iterator().next();
+          while(values.iterator().hasNext()){
+            context.write(key,new Text(values.iterator().next()+",combiner"));
+          }
         }
+        
+        if(false){
+          // text format
+          int rIdx = 0; // row
+          int cIdx = 1; // col
+          int vIdx = 2; // value
+          int mIdx = 3; // matrix name
+
+          // get the output key ready
+          // it is row of A, col of B
+          // each of the element of A need to multiply all the B elements
+          for(Text i: values){
+            // setup a line of file
+            String line_i = i.toString();
+            String[] indicesAndValue_i = line_i.split(",");
+            // find matrix A
+            if(indicesAndValue_i[mIdx].equals("A")){
+              for(Text j: values){
+                // setup a line of file
+                String line_j = j.toString();
+                String[] indicesAndValue_j = line_j.split(",");
+                // multiply each matrix B
+                if(indicesAndValue_j[mIdx].equals("B")){
+                  // setup outputKey and outputValue
+                  Text outputKey = new Text();
+                  Text outputValue = new Text();
+                  outputKey.set(indicesAndValue_i[rIdx] + "," + indicesAndValue_j[cIdx]); // row of A, col of B
+                  float valA = Float.parseFloat(indicesAndValue_i[vIdx]);
+                  float valB = Float.parseFloat(indicesAndValue_j[vIdx]);
+                  float result = valA * valB;
+                  outputValue.set(Float.toString(result));
+                  context.write(outputKey,outputValue);
+                }
+              }
+            }
+          }
         }
+      }
     }
+
+    // 3rd phase:
+    // output key: <row,col> of matrix C
+    // output value: summation of all the related products
     public static class Reduce extends Reducer<Text, Text, Text, Text> {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
           if(false){
