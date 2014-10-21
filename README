@@ -1,0 +1,62 @@
+Too Lee
+MatrixMult program
+
+===============================
+Copmilation
+===============================
+A makefile is provided to compile the word count program.
+
+  $ make 
+
+This will compile with the provided hadoop classpath of the system and create all class files in 
+class-folder
+
+Details:
+  mkdir -p class-folder
+  javac -cp `hadoop classpath` -d class-folder/ MatrixMult.java
+  jar -cvf ./matrixmult.jar -C class-folder/ .
+
+
+===============================
+Run
+===============================
+ssh to compute-0-0
+
+  $ ssh compute-0-0 
+
+run the run.bsh script
+
+  $ ./run.bsh <src> <dst>
+
+in my case, I did:
+
+  $ ./run.bsh matrix-mult/input03 matrix-mult/output44
+
+Details:
+
+  $ hadoop jar ./matrixmult.jar org.myorg.MatrixMult $1 $2-temp $2
+
+
+===============================
+Design
+===============================
+
+The mapper class input is <byteOffset, a line from input file>
+The format of the file is <row,column,value,matrixName>
+
+Let's say:
+Matrix A with m by n
+Matrix B with n by p
+
+The mapper class output is <n, <row,column,value,matrixName> >
+I basically just output the same line of file again but just with the value n
+as key.
+
+The reducer then takes the input now <n, list<row,column,value,matrixName> >
+Loop thru the list with each A element multiply with the B elements.  Then 
+output it to another mapper of < <row,col>, products >.  This
+time no need to output with source matrix name.
+
+The 2nd reducer class input is obviously < <row,col>, list of products >.  It
+then run summation base on the same key <row,col> in this case and write result
+to file.
